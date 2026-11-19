@@ -97,7 +97,7 @@ export function Header() {
               </span>
             </div>
             <div className="text-[9px] text-slate-500 dark:text-slate-400 truncate max-w-[210px]">
-              Jila Bar Association District Bahraich
+              Sponsored by Global Oil & Grease Mfg.
             </div>
           </div>
         </button>

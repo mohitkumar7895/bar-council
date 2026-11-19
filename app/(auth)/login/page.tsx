@@ -106,24 +106,24 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Right: Official Leadership Badge */}
-            <div className="w-full md:w-auto shrink-0 bg-gradient-to-br from-navy-950/80 via-navy-900/90 to-navy-950/80 border border-amber-500/40 rounded-2xl p-4 sm:p-5 text-center md:text-right shadow-lg">
-              <div className="text-[10px] uppercase font-bold text-gold-400 tracking-widest flex items-center justify-center md:justify-end gap-1 mb-1">
+            {/* Right: Prominent Official Sponsor Badge */}
+            <div className="w-full md:w-auto shrink-0 bg-gradient-to-br from-amber-950/40 via-navy-800/90 to-amber-950/40 border border-amber-500/40 rounded-2xl p-4 sm:p-5 text-center md:text-right shadow-lg">
+              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest flex items-center justify-center md:justify-end gap-1 mb-1">
                 <Sparkles className="w-3 h-3 text-gold-400" />
-                <span>Executive Office</span>
+                <span>Sponsored By</span>
               </div>
-              <div className="text-sm sm:text-base font-black text-white tracking-wide max-w-xs">
-                Jila Bar Association Bahraich
+              <div className="text-sm sm:text-base font-black text-amber-200 tracking-wide max-w-xs">
+                Global Oil & Grease Mfg. And Trading India
               </div>
-              <p className="text-[10px] text-amber-200/90 mt-1 max-w-xs">
-                Official Digital Governance & Advocates' Portal
+              <p className="text-[10px] text-slate-400 mt-1 max-w-xs">
+                Supporting Bar Council Governance & Advocates' Welfare
               </p>
               <button
                 type="button"
                 onClick={() => setShowSplashManual(true)}
                 className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-300 hover:text-white transition-colors"
               >
-                <span>View Introduction Showcase</span>
+                <span>View Introduction Loader</span>
                 <ArrowRight className="w-3 h-3" />
               </button>
             </div>
@@ -270,8 +270,11 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-6 pt-5 border-t border-navy-800 text-center">
-              <p className="text-[11px] text-slate-400 font-medium">
+              <p className="text-[11px] text-slate-400">
                 Jila Bar Association District Bahraich • Tenure 2025-2026
+              </p>
+              <p className="text-[10px] text-amber-400/80 mt-0.5 font-medium">
+                Sponsored By Global Oil & Grease Mfg. And Trading India
               </p>
             </div>
           </div>

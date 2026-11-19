@@ -126,6 +126,17 @@ export function WelcomeSplashScreen({ forceShow = false, onClose }: WelcomeSplas
           </div>
         </div>
 
+        {/* Prominent Sponsorship Card */}
+        <div className="bg-gradient-to-r from-amber-950/40 via-navy-800/80 to-amber-950/40 border border-amber-500/30 rounded-2xl p-3.5 shadow-lg text-center">
+          <div className="text-[11px] uppercase font-bold text-slate-400 tracking-widest mb-1 flex items-center justify-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-gold-400" />
+            <span>Sponsored By</span>
+          </div>
+          <div className="text-sm sm:text-base font-black text-amber-200 tracking-wide">
+            Global Oil & Grease Mfg. And Trading India
+          </div>
+        </div>
+
         {/* Progress Bar & Loader Indicator */}
         <div className="mt-6 space-y-3">
           <div className="w-full bg-navy-950 rounded-full h-2.5 overflow-hidden border border-navy-700/80 p-0.5 shadow-inner">
