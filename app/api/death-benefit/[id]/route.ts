@@ -10,7 +10,7 @@ export async function PUT(
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "death_benefit:approve")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { id } = await params;

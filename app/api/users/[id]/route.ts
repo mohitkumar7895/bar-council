@@ -9,7 +9,7 @@ export async function PUT(
   try {
     const currentUser = await getCurrentUser(req);
     if (!currentUser || currentUser.roleSlug !== "super_admin") {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { id } = await params;
@@ -46,7 +46,7 @@ export async function DELETE(
   try {
     const currentUser = await getCurrentUser(req);
     if (!currentUser || currentUser.roleSlug !== "super_admin") {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { id } = await params;

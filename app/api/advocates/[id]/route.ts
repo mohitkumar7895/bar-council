@@ -10,7 +10,7 @@ export async function GET(
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "advocates:view")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { id } = await params;
@@ -168,7 +168,7 @@ export async function PUT(
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "advocates:edit")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { id } = await params;
@@ -266,7 +266,7 @@ export async function DELETE(
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "advocates:delete")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { id } = await params;

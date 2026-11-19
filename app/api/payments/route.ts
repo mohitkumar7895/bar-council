@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "finance:view")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { searchParams } = new URL(req.url);

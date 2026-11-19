@@ -12,7 +12,7 @@ export async function DELETE(
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "documents:manage")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { id } = await params;

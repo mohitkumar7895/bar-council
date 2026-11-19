@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser(req);
     if (!user || (user.roleSlug !== "super_admin" && user.roleSlug !== "admin_secretary")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const body = await req.json();

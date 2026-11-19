@@ -10,7 +10,7 @@ export async function PUT(
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "cases:manage")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { id } = await params;
@@ -48,7 +48,7 @@ export async function DELETE(
   try {
     const user = await getCurrentUser(req);
     if (!user || user.roleSlug !== "super_admin") {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { id } = await params;

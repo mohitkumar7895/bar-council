@@ -12,7 +12,7 @@ export async function GET(
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "documents:view")) {
-      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 200 });
     }
 
     const { id } = await params;

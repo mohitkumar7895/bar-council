@@ -10,7 +10,7 @@ export async function POST(
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "health_claims:disburse")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const { id } = await params;

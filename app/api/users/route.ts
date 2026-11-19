@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "users:manage")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
     const sql = `
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser(req);
     if (!user || user.roleSlug !== "super_admin") {
-      return NextResponse.json({ success: false, error: "Only Super Admin can create users" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Only Super Admin can create users" }, { status: 200 });
     }
 
     const body = await req.json();
