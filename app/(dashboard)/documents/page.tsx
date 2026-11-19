@@ -250,7 +250,7 @@ export default function DocumentsPage() {
                       <span>{doc.title}</span>
                     </td>
                     <td className="py-3 px-4 capitalize text-slate-600 dark:text-slate-300">
-                      {doc.category.replace(/_/g, " ")}
+                      {doc.category ? String(doc.category).replace(/_/g, " ") : "Document"}
                     </td>
                     <td className="py-3 px-4 text-slate-800 dark:text-slate-200">
                       {doc.entity_label || doc.entity_type}

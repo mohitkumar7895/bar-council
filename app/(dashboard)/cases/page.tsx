@@ -125,6 +125,23 @@ export default function CasesPage() {
       }
 
       notify.success("Case registered successfully");
+      const newCaseId = json.data?.id || Date.now();
+      const newCaseCode = json.data?.case_no || `CASE-${new Date().getFullYear()}-${newCaseId}`;
+      setCases((prev) => [
+        {
+          id: newCaseId,
+          case_no: newCaseCode,
+          reference_number: refNo,
+          category,
+          applicant_name: applicantName,
+          respondent_name: respondentName,
+          filing_date: filingDate,
+          status: "open",
+          presiding_officer: presidingOfficer,
+        },
+        ...prev,
+      ]);
+      setTotalRecords((prev) => prev + 1);
       setModalOpen(false);
       fetchCases();
     } catch (err: any) {
@@ -158,6 +175,13 @@ export default function CasesPage() {
       }
 
       notify.success("Case updated successfully");
+      setCases((prev) =>
+        prev.map((c) =>
+          c.id === selectedCase.id
+            ? { ...c, status: editStatus, presiding_officer: editOfficer }
+            : c
+        )
+      );
       setEditModalOpen(false);
       fetchCases();
     } catch (err: any) {

@@ -134,6 +134,30 @@ export default function DeathBenefitPage() {
       }
 
       notify.success("Death Benefit Claim registered successfully");
+      const adv = advocates.find((a) => a.id === Number(selectedAdvocateId));
+      const newClaimId = json.data?.claimId || Date.now();
+      const newClaimNo = json.data?.claim_no || `DBC-${new Date().getFullYear()}-${newClaimId}`;
+      setClaims((prev) => [
+        {
+          id: newClaimId,
+          claim_no: newClaimNo,
+          advocate_id: Number(selectedAdvocateId),
+          deceased_advocate_name: adv?.full_name || "Advocate",
+          advocate_name: adv?.full_name || "Advocate",
+          advocate_code: adv?.advocate_code || "",
+          applicant_name,
+          relationship,
+          phone,
+          date_of_death: dateOfDeath,
+          application_date: new Date().toISOString().split("T")[0],
+          sanctioned_amount: Number(requestedAmount),
+          requested_amount: Number(requestedAmount),
+          claim_status: "submitted",
+          payment_status: "pending",
+        },
+        ...prev,
+      ]);
+      setTotalRecords((prev) => prev + 1);
       setRegisterModalOpen(false);
       fetchClaims();
     } catch (err: any) {
@@ -166,6 +190,18 @@ export default function DeathBenefitPage() {
       }
 
       notify.success("Claim status updated successfully");
+      setClaims((prev) =>
+        prev.map((c) =>
+          c.id === selectedClaim.id
+            ? {
+                ...c,
+                claim_status: newStatus,
+                reviewer_remarks: reviewerRemarks,
+                sanctioned_amount: newStatus === "approved" ? Number(sanctionedAmount) : c.sanctioned_amount,
+              }
+            : c
+        )
+      );
       setReviewModalOpen(false);
       fetchClaims();
     } catch (err: any) {
@@ -198,6 +234,13 @@ export default function DeathBenefitPage() {
       }
 
       notify.success("Claim disbursed and posted to financial expense ledger!");
+      setClaims((prev) =>
+        prev.map((c) =>
+          c.id === claimToDisburse.id
+            ? { ...c, claim_status: "disbursed", payment_status: "disbursed" }
+            : c
+        )
+      );
       setDisburseModalOpen(false);
       fetchClaims();
     } catch (err: any) {
@@ -350,7 +393,7 @@ export default function DeathBenefitPage() {
                             : "warning"
                         }
                       >
-                        {c.claim_status.replace(/_/g, " ")}
+                        {c.claim_status ? String(c.claim_status).replace(/_/g, " ") : "Submitted"}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-center">

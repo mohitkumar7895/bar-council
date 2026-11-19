@@ -185,6 +185,45 @@ export default function AdvocatesPage() {
           ? "Advocate record updated successfully"
           : "Advocate successfully enrolled into the Association"
       );
+
+      // Optimistic instant UI update
+      if (editingAdvocate) {
+        setAdvocates((prev) =>
+          prev.map((a) =>
+            a.id === editingAdvocate.id
+              ? ({ ...a, ...formData, membership_status: formData.membership_status as any } as Advocate)
+              : a
+          )
+        );
+      } else {
+        const newId = json.data?.advocateId || Date.now();
+        const code = json.data?.advocate_code || `ADV-${new Date().getFullYear()}-${String(newId).padStart(4, "0")}`;
+        const newEntry: Advocate = {
+          id: newId,
+          advocate_code: code,
+          full_name: formData.full_name,
+          father_name: formData.father_name,
+          phone: formData.phone,
+          email: formData.email,
+          address: formData.address,
+          bar_council_reg_no: formData.bar_council_reg_no,
+          association_membership_no: formData.association_membership_no,
+          kalyan_nidhi_no: formData.kalyan_nidhi_no,
+          apda_kosh_details: formData.apda_kosh_details,
+          membership_start_date: formData.membership_start_date,
+          renewal_date: formData.renewal_date,
+          membership_status: formData.membership_status as any,
+          admission_fee: formData.admission_fee,
+          monthly_chanda: formData.monthly_chanda,
+          annual_dues: formData.annual_dues,
+          outstanding_amount: formData.annual_dues,
+          total_paid: 0,
+          created_at: new Date().toISOString(),
+        };
+        setAdvocates((prev) => [newEntry, ...prev.filter((a) => a.id !== newId)]);
+        setTotalRecords((prev) => prev + 1);
+      }
+
       setModalOpen(false);
       fetchAdvocates();
     } catch (err: any) {

@@ -120,6 +120,22 @@ export default function DonationsPage() {
       }
 
       notify.success("Donation recorded successfully");
+      const cat = categories.find((c) => c.id === Number(categoryId));
+      setDonations((prev) => [
+        {
+          id: json.data?.donationId || Date.now(),
+          donation_no: json.data?.donation_no || `DON-${new Date().getFullYear()}-${Date.now()}`,
+          receipt_no: json.data?.receipt_number || `RCP-DON-${Date.now()}`,
+          contributor_name: contributorName,
+          donor_name: contributorName,
+          category_name: cat?.name || "General Corpus",
+          amount: Number(amount),
+          payment_mode: paymentMode,
+          status: donationStatus,
+          donation_date: new Date().toISOString().split("T")[0],
+        },
+        ...prev,
+      ]);
       setModalOpen(false);
       setCurrentReceipt(json.data);
       setReceiptModalOpen(true);

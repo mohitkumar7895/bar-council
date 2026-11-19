@@ -149,6 +149,19 @@ export default function MembershipPage() {
       }
 
       notify.success("Payment recorded successfully!");
+      setDues((prev) =>
+        prev.map((d) => {
+          if (d.advocate_id === Number(selectedAdvocateId)) {
+            const newPaid = Number(d.paid_amount) + Number(collectAmount);
+            return {
+              ...d,
+              paid_amount: newPaid,
+              status: newPaid >= Number(d.amount) ? "paid" : "partial",
+            };
+          }
+          return d;
+        })
+      );
       setCollectModalOpen(false);
       setCurrentReceipt(json.data);
       setReceiptModalOpen(true);
@@ -351,7 +364,7 @@ export default function MembershipPage() {
                         {d.period_name || d.due_year}
                       </td>
                       <td className="py-3 px-4 capitalize font-medium text-slate-800 dark:text-slate-200">
-                        {d.due_type.replace(/_/g, " ")}
+                        {d.due_type ? String(d.due_type).replace(/_/g, " ") : "Annual Dues"}
                       </td>
                       <td className="py-3 px-4 text-slate-500">
                         {monthName ? `${monthName} ${d.due_year}` : `Annual ${d.due_year}`}

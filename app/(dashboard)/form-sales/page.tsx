@@ -145,6 +145,27 @@ export default function FormSalesPage() {
       }
 
       notify.success("Form sale recorded successfully");
+      const customer = buyerName || (selectedAdvocateId ? advocates.find((a) => String(a.id) === selectedAdvocateId)?.full_name : "Applicant Member");
+      const adv = selectedAdvocateId ? advocates.find((a) => String(a.id) === selectedAdvocateId) : null;
+      setSales((prev) => [
+        {
+          id: json.data?.saleId || Date.now(),
+          sale_no: json.data?.sale_no || `FSL-${new Date().getFullYear()}-${Date.now()}`,
+          form_name: formType.form_name,
+          form_code: formType.form_code,
+          buyer_type: selectedAdvocateId ? "advocate" : "public",
+          buyer_name: customer,
+          advocate_name: adv?.full_name || customer,
+          advocate_code: adv?.advocate_code || "",
+          quantity: Number(quantity),
+          unit_price: Number(formType.sale_price),
+          total_amount: Number(formType.sale_price) * Number(quantity),
+          amount_received: Number(formType.sale_price) * Number(quantity),
+          payment_mode: paymentMode,
+          sale_date: new Date().toISOString().split("T")[0],
+        },
+        ...prev,
+      ]);
       setSaleModalOpen(false);
       setCurrentReceipt(json.data);
       setReceiptModalOpen(true);

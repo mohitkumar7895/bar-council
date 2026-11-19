@@ -165,6 +165,22 @@ export default function IncomeExpensesPage() {
       }
 
       notify.success("Income recorded successfully");
+      const newIncId = json.data?.id || Date.now();
+      const newIncNo = json.data?.income_no || `INC-${new Date().getFullYear()}-${newIncId}`;
+      setIncomes((prev) => [
+        {
+          id: newIncId,
+          income_no: newIncNo,
+          category: incCategory,
+          description: incDesc,
+          amount: Number(incAmount),
+          date: incDate,
+          received_from: incFrom,
+          payment_mode: incMode,
+          payment_status: "paid",
+        },
+        ...prev,
+      ]);
       setIncomeModalOpen(false);
       fetchIncome();
     } catch (err: any) {
@@ -200,6 +216,23 @@ export default function IncomeExpensesPage() {
       }
 
       notify.success("Expense voucher recorded successfully");
+      const cat = expenseCategories.find((c) => c.id === Number(expCategoryId));
+      const newExpId = json.data?.id || Date.now();
+      const newExpNo = json.data?.expense_no || `EXP-${new Date().getFullYear()}-${newExpId}`;
+      setExpenses((prev) => [
+        {
+          id: newExpId,
+          expense_no: newExpNo,
+          category_name: cat?.name || "General Expense",
+          description: expDesc,
+          amount: Number(expAmount),
+          date: expDate,
+          payee_vendor: expVendor,
+          payment_mode: expMode,
+          payment_status: "paid",
+        },
+        ...prev,
+      ]);
       setExpenseModalOpen(false);
       fetchExpenses();
     } catch (err: any) {
@@ -393,7 +426,7 @@ export default function IncomeExpensesPage() {
                       </td>
                       <td className="py-3 px-4 text-slate-500">{formatDate(inc.date)}</td>
                       <td className="py-3 px-4 capitalize font-medium text-slate-800 dark:text-slate-200">
-                        {inc.category.replace(/_/g, " ")}
+                        {inc.category ? String(inc.category).replace(/_/g, " ") : "Income"}
                       </td>
                       <td className="py-3 px-4 text-slate-600 dark:text-slate-300 max-w-xs truncate">
                         {inc.description}

@@ -194,6 +194,24 @@ export default function WaqalatnamaPage() {
       }
 
       notify.success("Waqalatnama sale completed successfully");
+      const buyerName = customerName || (selectedAdvocateId ? advocates.find((a) => String(a.id) === selectedAdvocateId)?.full_name : "Advocate Client");
+      const adv = selectedAdvocateId ? advocates.find((a) => String(a.id) === selectedAdvocateId) : null;
+      setSales((prev) => [
+        {
+          id: json.data?.saleId || Date.now(),
+          sale_no: json.data?.sale_no || `WQT-${new Date().getFullYear()}-${Date.now()}`,
+          buyer_type: selectedAdvocateId ? "advocate" : "client",
+          buyer_name: buyerName,
+          advocate_name: adv?.full_name || buyerName,
+          advocate_code: adv?.advocate_code || "",
+          total_amount: Number(amountReceived),
+          amount_received: Number(amountReceived),
+          payment_mode: paymentMode,
+          sale_date: new Date().toISOString().split("T")[0],
+          items_summary: `${item.item_name} (Qty: ${quantity})`,
+        },
+        ...prev,
+      ]);
       setSaleModalOpen(false);
       setCurrentReceipt({
         ...json.data,

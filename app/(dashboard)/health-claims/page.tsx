@@ -148,6 +148,28 @@ export default function HealthClaimsPage() {
       }
 
       notify.success("Health claim submitted successfully");
+      const adv = advocates.find((a) => a.id === Number(selectedAdvocateId));
+      const newClaimId = json.data?.claimId || Date.now();
+      const newClaimNo = json.data?.claim_no || `HLC-${new Date().getFullYear()}-${newClaimId}`;
+      setClaims((prev) => [
+        {
+          id: newClaimId,
+          claim_no: newClaimNo,
+          advocate_id: Number(selectedAdvocateId),
+          applicant_name,
+          advocate_name: adv?.full_name || "Advocate",
+          advocate_code: adv?.advocate_code || "",
+          category_name: "Hospitalization / Surgery",
+          hospital_name: hospitalName,
+          claimed_amount: Number(requestedAmount),
+          sanctioned_amount: Number(requestedAmount),
+          submission_date: new Date().toISOString().split("T")[0],
+          claim_status: "submitted",
+          payment_status: "pending",
+        },
+        ...prev,
+      ]);
+      setTotalRecords((prev) => prev + 1);
       setModalOpen(false);
       fetchClaims();
     } catch (err: any) {
@@ -181,6 +203,18 @@ export default function HealthClaimsPage() {
       }
 
       notify.success("Health claim reviewed and updated");
+      setClaims((prev) =>
+        prev.map((c) =>
+          c.id === selectedClaim.id
+            ? {
+                ...c,
+                claim_status: newStatus,
+                verification_status: verificationStatus,
+                sanctioned_amount: newStatus === "approved" ? Number(sanctionedAmount) : c.sanctioned_amount,
+              }
+            : c
+        )
+      );
       setReviewModalOpen(false);
       fetchClaims();
     } catch (err: any) {
@@ -213,6 +247,13 @@ export default function HealthClaimsPage() {
       }
 
       notify.success("Medical aid disbursed and recorded in expense ledger");
+      setClaims((prev) =>
+        prev.map((c) =>
+          c.id === claimToDisburse.id
+            ? { ...c, claim_status: "disbursed", payment_status: "disbursed" }
+            : c
+        )
+      );
       setDisburseModalOpen(false);
       fetchClaims();
     } catch (err: any) {
@@ -385,7 +426,7 @@ export default function HealthClaimsPage() {
                             : "warning"
                         }
                       >
-                        {c.claim_status.replace(/_/g, " ")}
+                        {c.claim_status ? String(c.claim_status).replace(/_/g, " ") : "Submitted"}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-center">

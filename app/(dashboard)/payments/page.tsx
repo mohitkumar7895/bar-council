@@ -185,7 +185,7 @@ export default function PaymentsPage() {
                     </td>
                     <td className="py-3 px-4 capitalize">
                       <Badge variant="neutral" size="sm">
-                        {p.source_module.replace(/_/g, " ")}
+                        {p.source_module ? String(p.source_module).replace(/_/g, " ") : "Payment"}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
@@ -266,7 +266,7 @@ export default function PaymentsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Account Head:</span>
-                  <span className="font-semibold capitalize">{selectedReceipt.source_module.replace(/_/g, " ")}</span>
+                  <span className="font-semibold capitalize">{selectedReceipt.source_module ? String(selectedReceipt.source_module).replace(/_/g, " ") : "Payment"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Payment Instrument:</span>
