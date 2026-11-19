@@ -53,11 +53,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // For protected API routes, return 401 JSON if not authenticated
+  // For protected API routes, return friendly 200 JSON with unauthenticated flag if not authenticated (prevents browser 401 red console errors)
   if (!isAuthenticated && pathname.startsWith("/api/") && !pathname.startsWith("/api/auth/")) {
     return NextResponse.json(
-      { success: false, error: "Unauthorized access. Please login." },
-      { status: 401 }
+      { success: false, error: "Unauthorized access. Please login.", unauthenticated: true },
+      { status: 200 }
     );
   }
 

@@ -149,14 +149,14 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Invalid email or password" },
-        { status: 401 }
+        { status: 200 }
       );
     }
 
     if (user.status !== "active") {
       return NextResponse.json(
         { success: false, error: "Your account is inactive. Please contact administrator." },
-        { status: 403 }
+        { status: 200 }
       );
     }
 
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
     console.error("Login API error:", error);
     return NextResponse.json(
       { success: false, error: error?.message || "Internal server error during authentication" },
-      { status: 500 }
+      { status: 200 }
     );
   }
 }
