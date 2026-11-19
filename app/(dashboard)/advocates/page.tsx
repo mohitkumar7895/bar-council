@@ -94,6 +94,10 @@ export default function AdvocatesPage() {
       });
       const res = await fetch(`/api/advocates?${params.toString()}`);
       const json = await res.json();
+      if (json.unauthenticated) {
+        window.location.href = "/login";
+        return;
+      }
       if (json.success) {
         setAdvocates(json.data);
         setTotalPages(json.pagination.totalPages);
@@ -197,6 +201,10 @@ export default function AdvocatesPage() {
     try {
       const res = await fetch(`/api/advocates/${id}`);
       const json = await res.json();
+      if (json.unauthenticated) {
+        window.location.href = "/login";
+        return;
+      }
       if (json.success) {
         setViewingAdvocate(json.data);
       } else {
@@ -217,6 +225,10 @@ export default function AdvocatesPage() {
         method: "DELETE",
       });
       const json = await res.json();
+      if (json.unauthenticated) {
+        window.location.href = "/login";
+        return;
+      }
       if (json.success) {
         notify.success(json.message || "Advocate deleted");
         setDeleteConfirmOpen(false);

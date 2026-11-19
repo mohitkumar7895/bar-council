@@ -45,6 +45,6 @@ export async function GET(
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: "Download failed" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Download failed" }, { status: 200 });
   }
 }

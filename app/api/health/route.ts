@@ -38,7 +38,7 @@ export async function GET() {
             ? "Your project is deployed on Vercel, but DB_HOST is set to localhost/127.0.0.1. Vercel serverless containers cannot access your local PC's MySQL. Please set up a free Cloud MySQL database (e.g. TiDB Cloud, Aiven, Railway, Supabase) and enter DB_HOST, DB_USER, DB_PASSWORD, DB_NAME in Vercel Project Settings > Environment Variables."
             : "Please verify MySQL is running and your credentials are correct.",
       },
-      { status: 500 }
+      { status: 200 }
     );
   }
 }

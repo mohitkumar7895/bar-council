@@ -19,6 +19,10 @@ export default function DashboardPage() {
     try {
       const res = await fetch(`/api/dashboard/stats?period=${period}`);
       const json = await res.json();
+      if (json.unauthenticated) {
+        window.location.href = "/login";
+        return;
+      }
       if (json.success) {
         setData(json.data);
       }
