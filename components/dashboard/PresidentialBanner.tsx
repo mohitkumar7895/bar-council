@@ -43,17 +43,17 @@ export function PresidentialBanner() {
           </div>
         </div>
 
-        {/* Right: Sponsor Section */}
+        {/* Right: Association Section */}
         <div className="shrink-0 text-center md:text-right bg-navy-950/60 border border-amber-500/20 rounded-xl px-4 py-2.5 shadow-sm">
-          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest flex items-center justify-center md:justify-end gap-1 mb-0.5">
+          <div className="text-[10px] uppercase font-bold text-gold-400 tracking-widest flex items-center justify-center md:justify-end gap-1 mb-0.5">
             <Sparkles className="w-3 h-3 text-gold-400" />
-            <span>Sponsored By</span>
+            <span>Executive Leadership</span>
           </div>
-          <div className="text-xs sm:text-sm font-black text-amber-200 tracking-wide">
-            Meri Global Oil & Grease Mfg. And Trading India
+          <div className="text-xs sm:text-sm font-black text-white tracking-wide">
+            Jila Bar Association Bahraich
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
-            Supporting Advocates' Governance & Legal Welfare
+          <div className="text-[10px] text-amber-300 mt-0.5">
+            Advocates Welfare & Judicial Excellence
           </div>
         </div>
       </div>

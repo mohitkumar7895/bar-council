@@ -97,7 +97,7 @@ export function Header() {
               </span>
             </div>
             <div className="text-[9px] text-slate-500 dark:text-slate-400 truncate max-w-[210px]">
-              Sponsored by Meri Global Oil & Grease Mfg.
+              Jila Bar Association District Bahraich
             </div>
           </div>
         </button>
