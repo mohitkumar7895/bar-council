@@ -145,7 +145,7 @@ export default function DeathBenefitPage() {
           deceased_advocate_name: adv?.full_name || "Advocate",
           advocate_name: adv?.full_name || "Advocate",
           advocate_code: adv?.advocate_code || "",
-          applicant_name,
+          applicant_name: applicantName,
           relationship,
           phone,
           date_of_death: dateOfDeath,

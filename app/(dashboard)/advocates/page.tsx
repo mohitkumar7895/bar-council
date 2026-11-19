@@ -219,6 +219,7 @@ export default function AdvocatesPage() {
           outstanding_amount: formData.annual_dues,
           total_paid: 0,
           created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
         setAdvocates((prev) => [newEntry, ...prev.filter((a) => a.id !== newId)]);
         setTotalRecords((prev) => prev + 1);
