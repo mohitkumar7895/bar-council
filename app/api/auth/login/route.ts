@@ -99,8 +99,29 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error("Login API error:", error);
+    const isDbError =
+      error?.code === "ECONNREFUSED" ||
+      error?.code === "ER_ACCESS_DENIED_ERROR" ||
+      error?.code === "ETIMEDOUT" ||
+      error?.code === "ENOTFOUND" ||
+      error?.code === "PROTOCOL_CONNECTION_LOST";
+
+    const host = process.env.DB_HOST || "127.0.0.1";
+    const isVercel = !!process.env.VERCEL;
+
+    let errorMsg = "Internal server error during authentication";
+    if (isDbError) {
+      if (isVercel && (host === "127.0.0.1" || host === "localhost")) {
+        errorMsg = `Vercel cannot connect to local MySQL (${host}). Please configure your Cloud MySQL database credentials (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME) in Vercel Environment Variables.`;
+      } else {
+        errorMsg = `Database connection failed (${error?.code}): Unable to connect to MySQL at ${host}:3306. Please verify your database credentials.`;
+      }
+    } else if (error?.message) {
+      errorMsg = error.message;
+    }
+
     return NextResponse.json(
-      { success: false, error: "Internal server error during authentication" },
+      { success: false, error: errorMsg },
       { status: 500 }
     );
   }

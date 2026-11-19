@@ -9,21 +9,26 @@ declare global {
 
 function getPool(): Pool {
   if (!global.__dbPool) {
+    const host = process.env.DB_HOST || "127.0.0.1";
+    const isRemote = host !== "127.0.0.1" && host !== "localhost";
+    const useSSL = process.env.DB_SSL === "true" || (isRemote && process.env.DB_SSL !== "false");
+
     global.__dbPool = mysql.createPool({
-      host: process.env.DB_HOST || "127.0.0.1",
+      host,
       port: Number(process.env.DB_PORT) || 3306,
       user: process.env.DB_USER || "root",
       password: process.env.DB_PASSWORD || "",
       database: process.env.DB_NAME || "bar-council",
       waitForConnections: true,
-      connectionLimit: 25,
-      maxIdle: 15,
-      idleTimeout: 300000,
+      connectionLimit: 10,
+      maxIdle: 10,
+      idleTimeout: 60000,
       queueLimit: 0,
       enableKeepAlive: true,
       keepAliveInitialDelay: 0,
       dateStrings: true,
       decimalNumbers: true,
+      ssl: useSSL ? { rejectUnauthorized: false } : undefined,
     });
   }
   return global.__dbPool;
