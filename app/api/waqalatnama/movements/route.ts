@@ -34,19 +34,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     return NextResponse.json({
       success: true,
-      fallback: true,
-      data: [
-        {
-          id: 1,
-          item_name: "Standard Waqalatnama",
-          item_code: "WQT-STD",
-          movement_type: "received",
-          quantity: 1000,
-          balance_after: 3500,
-          created_at: "2025-03-25",
-          user_name: "Admin User",
-        },
-      ],
+      data: [],
     });
   }
 }
