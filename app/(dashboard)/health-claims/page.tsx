@@ -156,7 +156,7 @@ export default function HealthClaimsPage() {
           id: newClaimId,
           claim_no: newClaimNo,
           advocate_id: Number(selectedAdvocateId),
-          applicant_name,
+          applicant_name: applicantName,
           advocate_name: adv?.full_name || "Advocate",
           advocate_code: adv?.advocate_code || "",
           category_name: "Hospitalization / Surgery",
