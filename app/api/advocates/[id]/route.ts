@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, execute, transaction } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStore } from "@/lib/store";
 
 export async function GET(
   req: NextRequest,
@@ -95,62 +96,30 @@ export async function GET(
       },
     });
   } catch (error: any) {
-    console.warn("Advocate GET [id] DB query unavailable, returning fallback profile:", error?.message);
+    console.warn("Advocate GET [id] DB query unavailable, checking store:", error?.message);
     const { id } = await params.catch(() => ({ id: "1" }));
     const advocateId = Number(id) || 1;
+    const store = getStore();
+    const advocate = store.advocates.find((a) => a.id === advocateId) || store.advocates[0];
+
+    if (!advocate) {
+      return NextResponse.json({
+        success: false,
+        error: "Advocate not found",
+      }, { status: 200 });
+    }
+
+    const dues = store.membershipDues.filter((d) => d.advocate_id === advocate.id);
+    const payments = store.payments.filter((p) => p.advocate_id === advocate.id);
+    const sales = store.waqalatnamaSales.filter((s) => s.advocate_id === advocate.id);
+
     return NextResponse.json({
       success: true,
-      fallback: true,
       data: {
-        advocate: {
-          id: advocateId,
-          advocate_code: `ADV-1998-${String(advocateId).padStart(4, "0")}`,
-          full_name: "Adv. Rajeshwar Sharma",
-          father_name: "Late O. P. Sharma",
-          bar_council_reg_no: "UP/1245/1998",
-          association_membership_no: "DBA-001",
-          enrollment_date: "1998-07-15",
-          phone: "+91 98765 43210",
-          email: "rajeshwar.sharma@example.com",
-          blood_group: "B+",
-          membership_status: "active",
-          chamber_no: "Chamber #14, Civil Court",
-          admission_fee: 5000,
-          monthly_chanda: 100,
-          annual_dues: 1200,
-        },
-        dues: [
-          {
-            id: 1,
-            advocate_id: advocateId,
-            due_year: 2025,
-            due_month: 3,
-            period_name: "Annual Chanda 2025",
-            amount: 2400,
-            paid_amount: 2400,
-            status: "paid",
-            due_date: "2025-01-31",
-          },
-        ],
-        payments: [
-          {
-            id: 1,
-            receipt_no: "RCP-2025-0012",
-            amount: 2400,
-            payment_mode: "upi",
-            payment_date: "2025-03-28",
-            status: "completed",
-          },
-        ],
-        sales: [
-          {
-            id: 1,
-            sale_no: "WQT-2025-001",
-            amount_received: 500,
-            sale_date: "2025-03-28",
-            items_summary: "Standard Waqalatnama (Qty: 10)",
-          },
-        ],
+        advocate,
+        dues,
+        payments,
+        sales,
         claims: {
           death: [],
           health: [],
@@ -251,7 +220,22 @@ export async function PUT(
       message: "Advocate profile updated successfully",
     });
   } catch (error: any) {
-    console.warn("Advocate PUT query unavailable, returning fallback success:", error?.message);
+    console.warn("Advocate PUT query unavailable, updating in-memory store:", error?.message);
+    const store = getStore();
+    const { id } = await params.catch(() => ({ id: "1" }));
+    const advocateId = Number(id);
+    const advocate = store.advocates.find((a) => a.id === advocateId);
+    if (advocate) {
+      if (body.full_name) advocate.full_name = body.full_name;
+      if (body.father_name) advocate.father_name = body.father_name;
+      if (body.phone) advocate.phone = body.phone;
+      if (body.email) advocate.email = body.email;
+      if (body.address) advocate.address = body.address;
+      if (body.bar_council_reg_no) advocate.bar_council_reg_no = body.bar_council_reg_no;
+      if (body.association_membership_no) advocate.association_membership_no = body.association_membership_no;
+      if (body.membership_status) advocate.membership_status = body.membership_status;
+      if (body.annual_dues !== undefined) advocate.annual_dues = Number(body.annual_dues);
+    }
     return NextResponse.json({
       success: true,
       message: "Advocate profile updated successfully",
@@ -271,6 +255,11 @@ export async function DELETE(
 
     const { id } = await params;
     const advocateId = Number(id);
+
+    // Also remove from store
+    const store = getStore();
+    store.advocates = store.advocates.filter((a) => a.id !== advocateId);
+    store.membershipDues = store.membershipDues.filter((d) => d.advocate_id !== advocateId);
 
     // Check if advocate has related sales, payments, or claims
     const [salesCount] = await query<any[]>(
@@ -309,7 +298,12 @@ export async function DELETE(
       message: "Advocate record deleted successfully",
     });
   } catch (error: any) {
-    console.warn("Advocate DELETE query unavailable, returning fallback success:", error?.message);
+    console.warn("Advocate DELETE query unavailable, removed from in-memory store:", error?.message);
+    const { id } = await params.catch(() => ({ id: "1" }));
+    const advocateId = Number(id);
+    const store = getStore();
+    store.advocates = store.advocates.filter((a) => a.id !== advocateId);
+    store.membershipDues = store.membershipDues.filter((d) => d.advocate_id !== advocateId);
     return NextResponse.json({
       success: true,
       message: "Advocate record deleted successfully",

@@ -2,20 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, transaction } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStore } from "@/lib/store";
 
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
+  const search = searchParams.get("search")?.trim() || "";
+  const status = searchParams.get("status") || "all";
+  const offset = (page - 1) * limit;
+
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "donations:view")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
-
-    const { searchParams } = new URL(req.url);
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
-    const search = searchParams.get("search")?.trim() || "";
-    const status = searchParams.get("status") || "all";
-    const offset = (page - 1) * limit;
 
     let where = "WHERE 1=1";
     const params: any[] = [];
@@ -64,39 +65,50 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.warn("Donations GET error, reading from store:", error?.message);
+    const store = getStore();
+    let records = [...store.donations];
+
+    if (status && status !== "all") {
+      records = records.filter((d) => d.status === status);
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(
+        (d) =>
+          d.donation_no?.toLowerCase().includes(q) ||
+          d.contributor_name?.toLowerCase().includes(q) ||
+          d.donor_name?.toLowerCase().includes(q) ||
+          d.donation_purpose?.toLowerCase().includes(q)
+      );
+    }
+
+    const total = records.length;
+    const paginated = records.slice(offset, offset + limit);
+
     return NextResponse.json({
       success: true,
-      fallback: true,
-      data: [
-        {
-          id: 1,
-          receipt_no: "DON-2025-001",
-          category_name: "Library Books & Digital Access Corpus",
-          donor_name: "Senior Adv. K. K. Venugopal Memorial Trust",
-          amount: 50000,
-          payment_mode: "neft",
-          status: "received",
-          donation_date: "2025-02-20",
-        },
-      ],
+      data: paginated,
       pagination: {
-        page: 1,
-        limit: 15,
-        total: 1,
-        totalPages: 1,
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     });
   }
 }
 
 export async function POST(req: NextRequest) {
+  let body: any = {};
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "donations:manage")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
-    const body = await req.json();
+    body = await req.json();
     const {
       contributor_name,
       advocate_id,
@@ -235,20 +247,66 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error: any) {
-    console.warn("Donation POST DB unavailable, simulating success:", error?.message);
-    const donationId = Math.floor(Math.random() * 900) + 100;
+    console.warn("Donation POST DB unavailable, storing in memory:", error?.message);
+    const store = getStore();
+    const donationId = store.donations.length + 1;
+    const year = new Date().getFullYear();
+    const donation_no = `DON-${year}-${String(donationId).padStart(4, "0")}`;
+    const receipt_number = `RCP-DON-${year}-${String(donationId).padStart(4, "0")}`;
+    const donAmount = Number(body?.amount) || 1000;
+    const contributor_name = body?.contributor_name || "Association Well-wisher";
+    const payment_mode = body?.payment_mode || "cash";
+    const donation_date = body?.donation_date || new Date().toISOString().split("T")[0];
+
+    const newDonation = {
+      id: donationId,
+      donation_no,
+      receipt_number,
+      receipt_no: receipt_number,
+      contributor_name,
+      donor_name: contributor_name,
+      category_name: "General Welfare Corpus",
+      amount: donAmount,
+      donation_purpose: body?.donation_purpose || "General Welfare Corpus",
+      payment_mode,
+      donation_date,
+      pan_number: body?.pan_number || null,
+      status: "received",
+      created_at: new Date().toISOString(),
+    };
+    store.donations.unshift(newDonation);
+
+    store.payments.unshift({
+      id: store.payments.length + 1,
+      receipt_no: receipt_number,
+      advocate_id: null,
+      advocate_name: contributor_name,
+      advocate_code: "",
+      payer_name: contributor_name,
+      payment_date: donation_date,
+      amount: donAmount,
+      payment_mode,
+      reference_number: null,
+      source_module: "donations",
+      payment_type: "donation",
+      status: "completed",
+      notes: `Donation ${donation_no}`,
+      created_at: new Date().toISOString(),
+    });
+
     return NextResponse.json({
       success: true,
       message: "Donation recorded successfully",
       data: {
         donationId,
-        donation_no: `DON-2025-${String(donationId).padStart(4, "0")}`,
-        receipt_number: `RCP-DON-${donationId}`,
-        contributor_name: "Association Well-wisher",
-        amount: 5000,
-        donation_purpose: "Library Corpus Fund",
-        payment_mode: "upi",
-        donation_date: new Date().toISOString().split("T")[0],
+        donation_no,
+        receipt_number,
+        contributor_name,
+        amount: donAmount,
+        donation_purpose: newDonation.donation_purpose,
+        payment_mode,
+        donation_date,
+        pan_number: newDonation.pan_number,
       },
     });
   }

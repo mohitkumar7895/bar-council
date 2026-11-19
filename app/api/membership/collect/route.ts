@@ -2,15 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, transaction } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStore } from "@/lib/store";
 
 export async function POST(req: NextRequest) {
+  let body: any = {};
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "membership:collect")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
-    const body = await req.json();
+    body = await req.json();
     const {
       advocate_id,
       amount,
@@ -168,16 +170,56 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error: any) {
-    console.warn("Membership collect DB query unavailable, simulating success:", error?.message);
-    const receiptNo = `RCP-2025-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+    console.warn("Membership collect DB query unavailable, storing in memory:", error?.message);
+    const store = getStore();
+    const paymentId = store.payments.length + 1;
+    const year = new Date().getFullYear();
+    const receipt_no = `RCP-${year}-${String(paymentId).padStart(4, "0")}`;
+    const adv = store.advocates.find((a) => a.id === Number(body?.advocate_id));
+
+    const newPayment = {
+      id: paymentId,
+      receipt_no,
+      advocate_id: Number(body?.advocate_id) || 1,
+      advocate_name: adv?.full_name || "Advocate",
+      advocate_code: adv?.advocate_code || `ADV-${year}-0001`,
+      payer_name: adv?.full_name || "Advocate",
+      payment_date: body?.payment_date || new Date().toISOString().split("T")[0],
+      amount: Number(body?.amount) || 0,
+      payment_mode: body?.payment_mode || "cash",
+      reference_number: body?.reference_number || null,
+      source_module: "membership",
+      payment_type: "membership_dues",
+      status: "completed",
+      notes: body?.notes || "Membership dues collection",
+      created_at: new Date().toISOString(),
+    };
+    store.payments.unshift(newPayment);
+
+    // Update dues for this advocate
+    const dues = store.membershipDues.filter((d) => d.advocate_id === Number(body?.advocate_id) && d.status !== "paid");
+    let rem = Number(body?.amount) || 0;
+    for (const d of dues) {
+      if (rem <= 0) break;
+      const bal = Number(d.amount) - Number(d.paid_amount);
+      const alloc = Math.min(rem, bal);
+      d.paid_amount = Number(d.paid_amount) + alloc;
+      if (d.paid_amount >= Number(d.amount)) {
+        d.status = "paid";
+      } else {
+        d.status = "partial";
+      }
+      rem -= alloc;
+    }
+
     return NextResponse.json({
       success: true,
       message: "Payment successfully recorded and allocated to dues",
       data: {
-        paymentId: Math.floor(Math.random() * 900) + 100,
-        receipt_no: receiptNo,
-        amount: 2400,
-        payment_mode: "cash",
+        paymentId,
+        receipt_no,
+        amount: Number(body?.amount) || 0,
+        payment_mode: body?.payment_mode || "cash",
       },
     });
   }

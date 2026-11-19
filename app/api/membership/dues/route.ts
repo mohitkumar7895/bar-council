@@ -2,22 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStore } from "@/lib/store";
 
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const periodId = searchParams.get("periodId");
+  const status = searchParams.get("status") || "all";
+  const dueType = searchParams.get("dueType") || "all";
+  const search = searchParams.get("search")?.trim() || "";
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
+  const offset = (page - 1) * limit;
+
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "membership:view")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
-
-    const { searchParams } = new URL(req.url);
-    const periodId = searchParams.get("periodId");
-    const status = searchParams.get("status") || "all";
-    const dueType = searchParams.get("dueType") || "all";
-    const search = searchParams.get("search")?.trim() || "";
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
-    const offset = (page - 1) * limit;
 
     let where = "WHERE 1=1";
     const params: any[] = [];
@@ -88,64 +89,40 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.warn("Membership dues GET error, returning fallback demo data:", error?.message);
-    const demoDues = [
-      {
-        id: 1,
-        advocate_id: 1,
-        advocate_name: "Adv. Rajeshwar Sharma",
-        advocate_code: "ADV-001",
-        phone: "+91 98765 43210",
-        bar_council_reg_no: "UP/1245/1998",
-        due_year: 2025,
-        due_month: 3,
-        period_name: "Annual Chanda 2025",
-        amount: 2400,
-        paid_amount: 2400,
-        status: "paid",
-        due_date: "2025-01-31",
-      },
-      {
-        id: 2,
-        advocate_id: 3,
-        advocate_name: "Adv. Vikram Malhotra",
-        advocate_code: "ADV-003",
-        phone: "+91 97123 45678",
-        bar_council_reg_no: "UP/5612/2012",
-        due_year: 2025,
-        due_month: 3,
-        period_name: "Annual Chanda 2025",
-        amount: 2400,
-        paid_amount: 1200,
-        status: "partial",
-        due_date: "2025-01-31",
-      },
-      {
-        id: 3,
-        advocate_id: 4,
-        advocate_name: "Adv. Sunita Agarwal",
-        advocate_code: "ADV-004",
-        phone: "+91 99234 56789",
-        bar_council_reg_no: "UP/7890/2016",
-        due_year: 2025,
-        due_month: 3,
-        period_name: "Annual Chanda 2025",
-        amount: 2400,
-        paid_amount: 0,
-        status: "unpaid",
-        due_date: "2025-01-31",
-      },
-    ];
+    console.warn("Membership dues GET unavailable, reading from store:", error?.message);
+    const store = getStore();
+    let records = [...store.membershipDues];
+
+    if (status && status !== "all") {
+      records = records.filter((d) => d.status === status);
+    }
+
+    if (dueType && dueType !== "all") {
+      records = records.filter((d) => d.due_type === dueType);
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(
+        (d) =>
+          d.advocate_name?.toLowerCase().includes(q) ||
+          d.advocate_code?.toLowerCase().includes(q) ||
+          d.phone?.includes(q) ||
+          d.bar_council_reg_no?.toLowerCase().includes(q)
+      );
+    }
+
+    const total = records.length;
+    const paginated = records.slice(offset, offset + limit);
 
     return NextResponse.json({
       success: true,
-      fallback: true,
-      data: demoDues,
+      data: paginated,
       pagination: {
-        page: 1,
-        limit: 10,
-        total: demoDues.length,
-        totalPages: 1,
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     });
   }

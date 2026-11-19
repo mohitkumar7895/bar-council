@@ -2,19 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, transaction } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStore } from "@/lib/store";
 
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
+  const search = searchParams.get("search")?.trim() || "";
+  const offset = (page - 1) * limit;
+
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "form_sales:view")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
-
-    const { searchParams } = new URL(req.url);
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
-    const search = searchParams.get("search")?.trim() || "";
-    const offset = (page - 1) * limit;
 
     let where = "WHERE 1=1";
     const params: any[] = [];
@@ -59,61 +60,46 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.warn("Form sales GET error, reading from store:", error?.message);
+    const store = getStore();
+    let records = [...store.formSales];
+
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(
+        (s) =>
+          s.sale_no?.toLowerCase().includes(q) ||
+          s.buyer_name?.toLowerCase().includes(q) ||
+          s.form_name?.toLowerCase().includes(q) ||
+          s.advocate_name?.toLowerCase().includes(q)
+      );
+    }
+
+    const total = records.length;
+    const paginated = records.slice(offset, offset + limit);
+
     return NextResponse.json({
       success: true,
-      fallback: true,
-      data: [
-        {
-          id: 1,
-          sale_no: "FSL-2025-001",
-          form_name: "Advocate Membership Application Form",
-          form_code: "FORM-MEMB",
-          buyer_type: "advocate",
-          buyer_name: "Adv. Rajeshwar Sharma",
-          advocate_name: "Adv. Rajeshwar Sharma",
-          advocate_code: "ADV-001",
-          quantity: 2,
-          unit_price: 50,
-          total_amount: 100,
-          amount_received: 100,
-          payment_mode: "cash",
-          sale_date: "2025-03-25",
-        },
-        {
-          id: 2,
-          sale_no: "FSL-2025-002",
-          form_name: "Chamber Allotment Requisition Form",
-          form_code: "FORM-CHAMBER",
-          buyer_type: "advocate",
-          buyer_name: "Adv. Vikram Malhotra",
-          advocate_name: "Adv. Vikram Malhotra",
-          advocate_code: "ADV-003",
-          quantity: 1,
-          unit_price: 100,
-          total_amount: 100,
-          amount_received: 100,
-          payment_mode: "upi",
-          sale_date: "2025-03-26",
-        },
-      ],
+      data: paginated,
       pagination: {
-        page: 1,
-        limit: 15,
-        total: 2,
-        totalPages: 1,
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     });
   }
 }
 
 export async function POST(req: NextRequest) {
+  let body: any = {};
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "form_sales:sell")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
-    const body = await req.json();
+    body = await req.json();
     const {
       form_type_id,
       advocate_id,
@@ -268,19 +254,71 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error: any) {
-    console.warn("Form sale DB query unavailable, simulating success:", error?.message);
-    const saleId = Math.floor(Math.random() * 900) + 100;
+    console.warn("Form sale DB query unavailable, storing in memory:", error?.message);
+    const store = getStore();
+    const saleId = store.formSales.length + 1;
+    const year = new Date().getFullYear();
+    const sale_no = `FSL-${year}-${String(saleId).padStart(4, "0")}`;
+    const formType = store.formTypes.find((f) => f.id === Number(body?.form_type_id)) || store.formTypes[0];
+    const adv = store.advocates.find((a) => a.id === Number(body?.advocate_id));
+    const buyer_name = adv?.full_name || body?.buyer_name || "Advocate Counter Sale";
+    const qty = Number(body?.quantity) || 1;
+    const unitPrice = Number(body?.unit_price) || formType?.sale_price || 50;
+    const totalAmount = Number(body?.total_amount) || qty * unitPrice;
+    const payment_mode = body?.payment_mode || "cash";
+    const sale_date = body?.sale_date || new Date().toISOString().split("T")[0];
+
+    const newSale = {
+      id: saleId,
+      sale_no,
+      form_name: formType?.form_name || "Application Form",
+      form_code: formType?.form_code || "FORM",
+      buyer_type: body?.buyer_type || "advocate",
+      buyer_name,
+      advocate_id: body?.advocate_id ? Number(body.advocate_id) : null,
+      advocate_name: adv?.full_name || null,
+      advocate_code: adv?.advocate_code || null,
+      quantity: qty,
+      unit_price: unitPrice,
+      total_amount: totalAmount,
+      amount_received: totalAmount,
+      payment_mode,
+      sale_date,
+      created_at: new Date().toISOString(),
+    };
+    store.formSales.unshift(newSale);
+
+    store.payments.unshift({
+      id: store.payments.length + 1,
+      receipt_no: `RCP-FSL-${year}-${String(saleId).padStart(4, "0")}`,
+      advocate_id: newSale.advocate_id,
+      advocate_name: buyer_name,
+      advocate_code: adv?.advocate_code || "",
+      payer_name: buyer_name,
+      payment_date: sale_date,
+      amount: totalAmount,
+      payment_mode,
+      reference_number: null,
+      source_module: "form_sales",
+      payment_type: "form_sale",
+      status: "completed",
+      notes: `Form Sale ${sale_no}`,
+      created_at: new Date().toISOString(),
+    });
+
     return NextResponse.json({
       success: true,
       message: "Form sale completed successfully",
       data: {
         saleId,
-        sale_no: `FSL-2025-${String(saleId).padStart(4, "0")}`,
-        customer_name: "Advocate Counter Sale",
-        total_amount: 100,
-        amount_received: 100,
-        sale_date: new Date().toISOString().split("T")[0],
-        payment_mode: "cash",
+        sale_no,
+        buyer_name,
+        form_name: newSale.form_name,
+        quantity: qty,
+        unit_price: unitPrice,
+        total_amount: totalAmount,
+        payment_mode,
+        sale_date,
       },
     });
   }

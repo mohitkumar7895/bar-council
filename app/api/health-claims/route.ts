@@ -2,20 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, transaction } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStore } from "@/lib/store";
 
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
+  const search = searchParams.get("search")?.trim() || "";
+  const status = searchParams.get("status") || "all";
+  const offset = (page - 1) * limit;
+
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "health_claims:view")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
-
-    const { searchParams } = new URL(req.url);
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
-    const search = searchParams.get("search")?.trim() || "";
-    const status = searchParams.get("status") || "all";
-    const offset = (page - 1) * limit;
 
     let where = "WHERE 1=1";
     const params: any[] = [];
@@ -66,43 +67,50 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.warn("Health claims GET error, reading from store:", error?.message);
+    const store = getStore();
+    let records = [...store.healthClaims];
+
+    if (status && status !== "all") {
+      records = records.filter((c) => c.claim_status === status);
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(
+        (c) =>
+          c.claim_no?.toLowerCase().includes(q) ||
+          c.applicant_name?.toLowerCase().includes(q) ||
+          c.advocate_name?.toLowerCase().includes(q) ||
+          c.hospital_name?.toLowerCase().includes(q)
+      );
+    }
+
+    const total = records.length;
+    const paginated = records.slice(offset, offset + limit);
+
     return NextResponse.json({
       success: true,
-      fallback: true,
-      data: [
-        {
-          id: 1,
-          claim_no: "HLC-2025-001",
-          advocate_id: 4,
-          advocate_name: "Adv. Sunita Agarwal",
-          advocate_code: "ADV-004",
-          category_name: "Hospitalization / Surgery",
-          hospital_name: "Fortis Escorts Hospital",
-          claimed_amount: 85000,
-          sanctioned_amount: 75000,
-          submission_date: "2025-03-10",
-          claim_status: "submitted",
-          payment_status: "pending",
-        },
-      ],
+      data: paginated,
       pagination: {
-        page: 1,
-        limit: 15,
-        total: 1,
-        totalPages: 1,
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     });
   }
 }
 
 export async function POST(req: NextRequest) {
+  let body: any = {};
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "health_claims:manage")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
-    const body = await req.json();
+    body = await req.json();
     const {
       advocate_id,
       applicant_name,
@@ -176,12 +184,45 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error: any) {
-    console.warn("Health claim POST DB unavailable, simulating success:", error?.message);
-    const claimId = Math.floor(Math.random() * 900) + 100;
+    console.warn("Health claim POST DB unavailable, storing in memory:", error?.message);
+    const store = getStore();
+    const claimId = store.healthClaims.length + 1;
+    const year = new Date().getFullYear();
+    const claim_no = `HLC-${year}-${String(claimId).padStart(4, "0")}`;
+    const adv = store.advocates.find((a) => a.id === Number(body?.advocate_id));
+    const reqAmt = Number(body?.claimed_amount) || Number(body?.requested_amount) || 50000;
+
+    const newClaim = {
+      id: claimId,
+      claim_no,
+      advocate_id: Number(body?.advocate_id) || 1,
+      applicant_name: body?.applicant_name || adv?.full_name || "Advocate",
+      advocate_name: adv?.full_name || "Advocate",
+      advocate_code: adv?.advocate_code || "",
+      category_name: "Hospitalization / Surgery",
+      hospital_name: body?.hospital_name || "Medical Complex",
+      illness_details: body?.illness_details || "",
+      admission_date: body?.admission_date || null,
+      discharge_date: body?.discharge_date || null,
+      claimed_amount: reqAmt,
+      sanctioned_amount: reqAmt,
+      submission_date: new Date().toISOString().split("T")[0],
+      claim_status: "submitted",
+      payment_status: "pending",
+      created_at: new Date().toISOString(),
+    };
+    store.healthClaims.unshift(newClaim);
+
     return NextResponse.json({
       success: true,
       message: "Health claim application submitted successfully",
-      data: { claimId, claim_no: `HLC-2025-${String(claimId).padStart(4, "0")}` },
+      data: {
+        claimId,
+        claim_no,
+        applicant_name: newClaim.applicant_name,
+        claimed_amount: reqAmt,
+        claim_status: "submitted",
+      },
     });
   }
 }

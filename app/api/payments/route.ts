@@ -2,21 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStore } from "@/lib/store";
 
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
+  const search = searchParams.get("search")?.trim() || "";
+  const module = searchParams.get("module") || "all";
+  const paymentMode = searchParams.get("paymentMode") || "all";
+  const offset = (page - 1) * limit;
+
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "finance:view")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
-
-    const { searchParams } = new URL(req.url);
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
-    const search = searchParams.get("search")?.trim() || "";
-    const module = searchParams.get("module") || "all";
-    const paymentMode = searchParams.get("paymentMode") || "all";
-    const offset = (page - 1) * limit;
 
     let where = "WHERE 1=1";
     const params: any[] = [];
@@ -70,27 +71,39 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.warn("Payments GET error, reading from store:", error?.message);
+    const store = getStore();
+    let records = [...store.payments];
+
+    if (module && module !== "all") {
+      records = records.filter((p) => p.source_module === module);
+    }
+
+    if (paymentMode && paymentMode !== "all") {
+      records = records.filter((p) => p.payment_mode === paymentMode);
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(
+        (p) =>
+          p.receipt_no?.toLowerCase().includes(q) ||
+          p.payer_name?.toLowerCase().includes(q) ||
+          p.advocate_name?.toLowerCase().includes(q)
+      );
+    }
+
+    const total = records.length;
+    const paginated = records.slice(offset, offset + limit);
+
     return NextResponse.json({
       success: true,
-      fallback: true,
-      data: [
-        {
-          id: 1,
-          receipt_no: "RCP-2025-0012",
-          payment_type: "membership_dues",
-          amount: 2400,
-          payment_mode: "upi",
-          status: "completed",
-          payment_date: "2025-03-28",
-          advocate_name: "Adv. Rajeshwar Sharma",
-          advocate_code: "ADV-001",
-        },
-      ],
+      data: paginated,
       pagination: {
-        page: 1,
-        limit: 15,
-        total: 1,
-        totalPages: 1,
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     });
   }

@@ -2,20 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, execute, transaction } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStore } from "@/lib/store";
 
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 10));
+  const search = searchParams.get("search")?.trim() || "";
+  const status = searchParams.get("status")?.trim() || "";
+  const offset = (page - 1) * limit;
+
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "advocates:view")) {
       return NextResponse.json({ success: false, error: "Unauthorized", unauthenticated: !user }, { status: 200 });
     }
-
-    const { searchParams } = new URL(req.url);
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 10));
-    const search = searchParams.get("search")?.trim() || "";
-    const status = searchParams.get("status")?.trim() || "";
-    const offset = (page - 1) * limit;
 
     let whereClause = "WHERE 1=1";
     const params: any[] = [];
@@ -75,112 +76,51 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.warn("Advocates GET query unavailable, returning fallback demo data:", error?.message);
-    const demoAdvocates = [
-      {
-        id: 1,
-        advocate_code: "ADV-001",
-        full_name: "Adv. Rajeshwar Sharma",
-        father_name: "Late O. P. Sharma",
-        bar_council_reg_no: "UP/1245/1998",
-        association_membership_no: "DBA-001",
-        enrollment_date: "1998-07-15",
-        phone: "+91 98765 43210",
-        email: "rajeshwar.sharma@example.com",
-        blood_group: "B+",
-        membership_status: "active",
-        chamber_no: "Chamber #14, Civil Court",
-        total_paid: 2400,
-        outstanding_amount: 0,
-      },
-      {
-        id: 2,
-        advocate_code: "ADV-002",
-        full_name: "Adv. Manisha Rastogi",
-        father_name: "Shri R. C. Rastogi",
-        bar_council_reg_no: "UP/3421/2005",
-        association_membership_no: "DBA-002",
-        enrollment_date: "2005-09-10",
-        phone: "+91 98112 23344",
-        email: "manisha.rastogi@example.com",
-        blood_group: "O+",
-        membership_status: "active",
-        chamber_no: "Chamber #22, Session Wing",
-        total_paid: 2400,
-        outstanding_amount: 0,
-      },
-      {
-        id: 3,
-        advocate_code: "ADV-003",
-        full_name: "Adv. Vikram Malhotra",
-        father_name: "Shri K. L. Malhotra",
-        bar_council_reg_no: "UP/5612/2012",
-        association_membership_no: "DBA-003",
-        enrollment_date: "2012-04-20",
-        phone: "+91 97123 45678",
-        email: "vikram.malhotra@example.com",
-        blood_group: "A+",
-        membership_status: "active",
-        chamber_no: "Chamber #08, Collectorate",
-        total_paid: 1200,
-        outstanding_amount: 1200,
-      },
-      {
-        id: 4,
-        advocate_code: "ADV-004",
-        full_name: "Adv. Sunita Agarwal",
-        father_name: "Shri M. P. Agarwal",
-        bar_council_reg_no: "UP/7890/2016",
-        association_membership_no: "DBA-004",
-        enrollment_date: "2016-11-05",
-        phone: "+91 99234 56789",
-        email: "sunita.agarwal@example.com",
-        blood_group: "AB+",
-        membership_status: "active",
-        chamber_no: "Chamber #31, Fast Track Court",
-        total_paid: 2400,
-        outstanding_amount: 0,
-      },
-      {
-        id: 5,
-        advocate_code: "ADV-005",
-        full_name: "Late Adv. Prem Kishan",
-        father_name: "Late S. N. Kishan",
-        bar_council_reg_no: "UP/0912/1985",
-        association_membership_no: "DBA-005",
-        enrollment_date: "1985-03-12",
-        phone: "+91 94150 11223",
-        email: "prem.kishan@example.com",
-        blood_group: "O-",
-        membership_status: "deceased",
-        chamber_no: "Chamber #02, Old Block",
-        total_paid: 2400,
-        outstanding_amount: 0,
-      },
-    ];
+    console.warn("Advocates GET query unavailable, using store:", error?.message);
+    const store = getStore();
+    let records = [...store.advocates];
+
+    if (status && status !== "all") {
+      records = records.filter((a) => a.membership_status === status);
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(
+        (a) =>
+          a.full_name?.toLowerCase().includes(q) ||
+          a.phone?.includes(q) ||
+          a.bar_council_reg_no?.toLowerCase().includes(q) ||
+          a.association_membership_no?.toLowerCase().includes(q) ||
+          a.advocate_code?.toLowerCase().includes(q)
+      );
+    }
+
+    const total = records.length;
+    const paginated = records.slice(offset, offset + limit);
 
     return NextResponse.json({
       success: true,
-      fallback: true,
-      data: demoAdvocates,
+      data: paginated,
       pagination: {
-        page: 1,
-        limit: 10,
-        total: demoAdvocates.length,
-        totalPages: 1,
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     });
   }
 }
 
 export async function POST(req: NextRequest) {
+  let body: any = {};
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "advocates:create")) {
       return NextResponse.json({ success: false, error: "Unauthorized", unauthenticated: !user }, { status: 200 });
     }
 
-    const body = await req.json();
+    body = await req.json();
     const {
       full_name,
       father_name,
@@ -299,6 +239,32 @@ export async function POST(req: NextRequest) {
         ]
       );
 
+      const store = getStore();
+      store.advocates.unshift({
+        id: advocateId,
+        advocate_code,
+        full_name: full_name.trim(),
+        photo_url: photo_url || null,
+        father_name: father_name.trim(),
+        address: address || null,
+        phone: phone.trim(),
+        email: email?.trim() || null,
+        bar_council_reg_no: bar_council_reg_no.trim(),
+        association_membership_no: association_membership_no.trim(),
+        kalyan_nidhi_no: kalyan_nidhi_no?.trim() || null,
+        apda_kosh_details: apda_kosh_details?.trim() || null,
+        membership_start_date: startDate,
+        renewal_date: renewal_date || null,
+        membership_status,
+        admission_fee: Number(admission_fee) || 0,
+        monthly_chanda: Number(monthly_chanda) || 0,
+        annual_dues: Number(annual_dues) || 0,
+        total_paid: 0,
+        outstanding_amount: Number(annual_dues) || 1200,
+        remarks: remarks || null,
+        created_at: new Date().toISOString(),
+      });
+
       return { advocateId, advocate_code };
     });
 
@@ -308,13 +274,60 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error: any) {
-    console.warn("Advocates POST query unavailable, simulating success:", error?.message);
-    const newId = Math.floor(Math.random() * 900) + 100;
+    console.warn("Advocates POST query unavailable, storing in memory:", error?.message);
+    const store = getStore();
+    const newId = store.advocates.length > 0 ? Math.max(...store.advocates.map((a) => a.id)) + 1 : 1;
     const year = new Date().getFullYear();
     const advocate_code = `ADV-${year}-${String(newId).padStart(4, "0")}`;
+
+    const newAdvocate = {
+      id: newId,
+      advocate_code,
+      full_name: body?.full_name?.trim() || "Advocate",
+      photo_url: body?.photo_url || null,
+      father_name: body?.father_name?.trim() || "",
+      address: body?.address?.trim() || "",
+      phone: body?.phone?.trim() || "",
+      email: body?.email?.trim() || "",
+      bar_council_reg_no: body?.bar_council_reg_no?.trim() || `BC/${year}/${newId}`,
+      association_membership_no: body?.association_membership_no?.trim() || `DBA-${newId}`,
+      kalyan_nidhi_no: body?.kalyan_nidhi_no?.trim() || "",
+      apda_kosh_details: body?.apda_kosh_details?.trim() || "",
+      membership_start_date: body?.membership_start_date || new Date().toISOString().split("T")[0],
+      renewal_date: body?.renewal_date || null,
+      membership_status: body?.membership_status || "active",
+      admission_fee: Number(body?.admission_fee) || 5000,
+      monthly_chanda: Number(body?.monthly_chanda) || 100,
+      annual_dues: Number(body?.annual_dues) || 1200,
+      total_paid: 0,
+      outstanding_amount: Number(body?.annual_dues) || 1200,
+      remarks: body?.remarks || "",
+      created_at: new Date().toISOString(),
+    };
+
+    store.advocates.unshift(newAdvocate);
+
+    // Also auto-add annual dues for this new advocate in store
+    store.membershipDues.unshift({
+      id: store.membershipDues.length + 1,
+      advocate_id: newId,
+      advocate_name: newAdvocate.full_name,
+      advocate_code,
+      phone: newAdvocate.phone,
+      bar_council_reg_no: newAdvocate.bar_council_reg_no,
+      due_type: "annual_dues",
+      due_year: year,
+      due_month: null,
+      period_name: `Calendar Year ${year}`,
+      amount: newAdvocate.annual_dues,
+      paid_amount: 0,
+      status: "unpaid",
+      due_date: `${year}-04-30`,
+      created_at: new Date().toISOString(),
+    });
+
     return NextResponse.json({
       success: true,
-      fallback: true,
       message: "Advocate successfully registered",
       data: { advocateId: newId, advocate_code },
     });

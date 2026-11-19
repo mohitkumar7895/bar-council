@@ -2,20 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, transaction } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStore } from "@/lib/store";
 
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
+  const search = searchParams.get("search")?.trim() || "";
+  const status = searchParams.get("status") || "all";
+  const offset = (page - 1) * limit;
+
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "death_benefit:view")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
-
-    const { searchParams } = new URL(req.url);
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 15));
-    const search = searchParams.get("search")?.trim() || "";
-    const status = searchParams.get("status") || "all";
-    const offset = (page - 1) * limit;
 
     let where = "WHERE 1=1";
     const params: any[] = [];
@@ -66,44 +67,50 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.warn("Death benefit GET error, reading from store:", error?.message);
+    const store = getStore();
+    let records = [...store.deathClaims];
+
+    if (status && status !== "all") {
+      records = records.filter((c) => c.claim_status === status);
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(
+        (c) =>
+          c.claim_no?.toLowerCase().includes(q) ||
+          c.deceased_advocate_name?.toLowerCase().includes(q) ||
+          c.applicant_name?.toLowerCase().includes(q) ||
+          c.advocate_code?.toLowerCase().includes(q)
+      );
+    }
+
+    const total = records.length;
+    const paginated = records.slice(offset, offset + limit);
+
     return NextResponse.json({
       success: true,
-      fallback: true,
-      data: [
-        {
-          id: 1,
-          claim_no: "DBC-2025-001",
-          advocate_id: 5,
-          deceased_advocate_name: "Late Adv. Prem Kishan",
-          advocate_name: "Late Adv. Prem Kishan",
-          advocate_code: "ADV-005",
-          applicant_name: "Smt. Shanti Devi",
-          relationship: "Spouse",
-          date_of_death: "2025-02-14",
-          application_date: "2025-03-01",
-          sanctioned_amount: 500000,
-          claim_status: "under_review",
-          payment_status: "pending",
-        },
-      ],
+      data: paginated,
       pagination: {
-        page: 1,
-        limit: 15,
-        total: 1,
-        totalPages: 1,
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     });
   }
 }
 
 export async function POST(req: NextRequest) {
+  let body: any = {};
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "death_benefit:manage")) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 200 });
     }
 
-    const body = await req.json();
+    body = await req.json();
     const {
       advocate_id,
       date_of_death,
@@ -183,12 +190,49 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error: any) {
-    console.warn("Death benefit claim DB unavailable, simulating success:", error?.message);
-    const claimId = Math.floor(Math.random() * 900) + 100;
+    console.warn("Death benefit claim DB unavailable, storing in memory:", error?.message);
+    const store = getStore();
+    const claimId = store.deathClaims.length + 1;
+    const year = new Date().getFullYear();
+    const claim_no = `DBC-${year}-${String(claimId).padStart(4, "0")}`;
+    const adv = store.advocates.find((a) => a.id === Number(body?.advocate_id));
+
+    const newClaim = {
+      id: claimId,
+      claim_no,
+      advocate_id: Number(body?.advocate_id) || 1,
+      deceased_advocate_name: adv?.full_name || "Advocate",
+      advocate_name: adv?.full_name || "Advocate",
+      advocate_code: adv?.advocate_code || "",
+      applicant_name: body?.applicant_name || "Nominee",
+      relationship: body?.relationship || "Spouse",
+      phone: body?.phone || "",
+      date_of_death: body?.date_of_death || new Date().toISOString().split("T")[0],
+      application_date: new Date().toISOString().split("T")[0],
+      sanctioned_amount: Number(body?.requested_amount) || 500000,
+      requested_amount: Number(body?.requested_amount) || 500000,
+      claim_status: "submitted",
+      payment_status: "pending",
+      created_at: new Date().toISOString(),
+    };
+    store.deathClaims.unshift(newClaim);
+
+    // If advocate exists in store, mark status as deceased
+    if (adv) {
+      adv.membership_status = "deceased";
+    }
+
     return NextResponse.json({
       success: true,
       message: "Death Benefit Claim registered successfully",
-      data: { claimId, claim_no: `DBC-2025-${String(claimId).padStart(4, "0")}` },
+      data: {
+        claimId,
+        claim_no,
+        advocate_name: newClaim.deceased_advocate_name,
+        applicant_name: newClaim.applicant_name,
+        requested_amount: newClaim.requested_amount,
+        claim_status: "submitted",
+      },
     });
   }
 }

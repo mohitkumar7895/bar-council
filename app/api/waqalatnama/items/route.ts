@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, execute } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStore } from "@/lib/store";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,44 +14,10 @@ export async function GET(req: NextRequest) {
     );
     return NextResponse.json({ success: true, data: items });
   } catch (error: any) {
+    const store = getStore();
     return NextResponse.json({
       success: true,
-      fallback: true,
-      data: [
-        {
-          id: 1,
-          item_code: "WQT-STD",
-          item_name: "Standard Waqalatnama (Single Sheet)",
-          description: "Official Bar Council authorized single sheet Waqalatnama",
-          unit_rate: 50.0,
-          current_stock: 3500,
-          low_stock_threshold: 200,
-          total_sold: 1250,
-          is_active: 1,
-        },
-        {
-          id: 2,
-          item_code: "WQT-BOOK",
-          item_name: "Waqalatnama Booklet (50 Leaves)",
-          description: "Official booklet containing 50 serial numbered Waqalatnama",
-          unit_rate: 2200.0,
-          current_stock: 450,
-          low_stock_threshold: 50,
-          total_sold: 80,
-          is_active: 1,
-        },
-        {
-          id: 3,
-          item_code: "WQT-AFF",
-          item_name: "Affidavit Stamp Form",
-          description: "Prescribed Bar Association affidavit format",
-          unit_rate: 20.0,
-          current_stock: 1200,
-          low_stock_threshold: 100,
-          total_sold: 650,
-          is_active: 1,
-        },
-      ],
+      data: store.waqalatnamaItems,
     });
   }
 }
