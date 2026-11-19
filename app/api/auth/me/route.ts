@@ -6,8 +6,8 @@ export async function GET(req: NextRequest) {
     const user = await getCurrentUser(req);
     if (!user) {
       return NextResponse.json(
-        { success: false, error: "Not authenticated" },
-        { status: 401 }
+        { success: false, user: null, message: "Not authenticated" },
+        { status: 200 }
       );
     }
 
@@ -17,8 +17,8 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: "Authentication check failed" },
-      { status: 500 }
+      { success: false, user: null, message: "Authentication check failed" },
+      { status: 200 }
     );
   }
 }

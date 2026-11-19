@@ -29,6 +29,7 @@ function getPool(): Pool {
       dateStrings: true,
       decimalNumbers: true,
       ssl: useSSL ? { rejectUnauthorized: false } : undefined,
+      connectTimeout: 3000,
     });
   }
   return global.__dbPool;
