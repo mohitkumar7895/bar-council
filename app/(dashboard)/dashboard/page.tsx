@@ -7,6 +7,7 @@ import { SecretaryDashboard } from "@/components/dashboard/SecretaryDashboard";
 import { AccountsDashboard } from "@/components/dashboard/AccountsDashboard";
 import { DataEntryDashboard } from "@/components/dashboard/DataEntryDashboard";
 import { CommitteeDashboard } from "@/components/dashboard/CommitteeDashboard";
+import { PresidentialBanner } from "@/components/dashboard/PresidentialBanner";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -39,61 +40,70 @@ export default function DashboardPage() {
 
   const roleSlug = user?.roleSlug || "super_admin";
 
-  switch (roleSlug) {
-    case "admin_secretary":
-      return (
-        <SecretaryDashboard
-          data={data}
-          period={period}
-          setPeriod={setPeriod}
-          fetchStats={fetchStats}
-          loading={loading}
-        />
-      );
+  const renderDashboard = () => {
+    switch (roleSlug) {
+      case "admin_secretary":
+        return (
+          <SecretaryDashboard
+            data={data}
+            period={period}
+            setPeriod={setPeriod}
+            fetchStats={fetchStats}
+            loading={loading}
+          />
+        );
 
-    case "accounts_finance":
-      return (
-        <AccountsDashboard
-          data={data}
-          period={period}
-          setPeriod={setPeriod}
-          fetchStats={fetchStats}
-          loading={loading}
-        />
-      );
+      case "accounts_finance":
+        return (
+          <AccountsDashboard
+            data={data}
+            period={period}
+            setPeriod={setPeriod}
+            fetchStats={fetchStats}
+            loading={loading}
+          />
+        );
 
-    case "data_entry":
-      return (
-        <DataEntryDashboard
-          data={data}
-          period={period}
-          setPeriod={setPeriod}
-          fetchStats={fetchStats}
-          loading={loading}
-        />
-      );
+      case "data_entry":
+        return (
+          <DataEntryDashboard
+            data={data}
+            period={period}
+            setPeriod={setPeriod}
+            fetchStats={fetchStats}
+            loading={loading}
+          />
+        );
 
-    case "readonly_committee":
-      return (
-        <CommitteeDashboard
-          data={data}
-          period={period}
-          setPeriod={setPeriod}
-          fetchStats={fetchStats}
-          loading={loading}
-        />
-      );
+      case "readonly_committee":
+        return (
+          <CommitteeDashboard
+            data={data}
+            period={period}
+            setPeriod={setPeriod}
+            fetchStats={fetchStats}
+            loading={loading}
+          />
+        );
 
-    case "super_admin":
-    default:
-      return (
-        <SuperAdminDashboard
-          data={data}
-          period={period}
-          setPeriod={setPeriod}
-          fetchStats={fetchStats}
-          loading={loading}
-        />
-      );
-  }
+      case "super_admin":
+      default:
+        return (
+          <SuperAdminDashboard
+            data={data}
+            period={period}
+            setPeriod={setPeriod}
+            fetchStats={fetchStats}
+            loading={loading}
+          />
+        );
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <PresidentialBanner />
+      {renderDashboard()}
+    </div>
+  );
 }

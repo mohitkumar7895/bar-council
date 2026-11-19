@@ -13,11 +13,14 @@ import {
   Shield,
   LogOut,
   Calendar,
+  Sparkles,
+  Award,
 } from "lucide-react";
 import { useSidebar } from "@/context/SidebarContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
+import { WelcomeSplashScreen } from "@/components/ui/WelcomeSplashScreen";
 
 export function Header() {
   const pathname = usePathname();
@@ -27,6 +30,7 @@ export function Header() {
   const { activePeriod } = useApp();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,11 +71,40 @@ export function Header() {
         </div>
       </div>
 
+      {/* President Showcase Welcome Modal */}
+      <WelcomeSplashScreen forceShow={showSplash} onClose={() => setShowSplash(false)} />
+
       {/* Right controls */}
       <div className="flex items-center gap-2 sm:gap-4">
+        {/* President & Sponsor Badge Button */}
+        <button
+          onClick={() => setShowSplash(true)}
+          className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-amber-50 to-amber-100/70 dark:from-navy-800 dark:to-navy-850 border border-amber-300/80 dark:border-amber-500/40 hover:border-amber-500 text-left transition-all shadow-sm group cursor-pointer"
+          title="Click to view Presidential Welcome Showcase"
+        >
+          <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-amber-400 shrink-0 shadow-sm">
+            <img
+              src="/president-rajesh-shukla.jpg"
+              alt="President Rajesh Shukla"
+              className="w-full h-full object-cover object-top"
+            />
+          </div>
+          <div className="leading-tight">
+            <div className="text-[11px] font-bold text-slate-800 dark:text-amber-200 group-hover:text-amber-600 dark:group-hover:text-amber-300 flex items-center gap-1.5">
+              <span>Mr. Rajesh Shukla</span>
+              <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-amber-500 text-navy-950 uppercase tracking-wider">
+                PRESIDENT
+              </span>
+            </div>
+            <div className="text-[9px] text-slate-500 dark:text-slate-400 truncate max-w-[210px]">
+              Sponsored by Meri Global Oil & Grease Mfg.
+            </div>
+          </div>
+        </button>
+
         {/* Active Period Badge */}
         {activePeriod && (
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-300/60 dark:border-gold-700/60 text-amber-800 dark:text-gold-400 text-xs font-semibold">
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-300/60 dark:border-gold-700/60 text-amber-800 dark:text-gold-400 text-xs font-semibold">
             <Calendar className="w-3.5 h-3.5" />
             <span>Cycle: {activePeriod.name}</span>
           </div>
