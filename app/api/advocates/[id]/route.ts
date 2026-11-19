@@ -134,6 +134,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let body: any = {};
   try {
     const user = await getCurrentUser(req);
     if (!user || !hasPermission(user, "advocates:edit")) {
@@ -142,7 +143,7 @@ export async function PUT(
 
     const { id } = await params;
     const advocateId = Number(id);
-    const body = await req.json();
+    body = await req.json();
 
     const {
       full_name,

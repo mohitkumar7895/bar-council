@@ -762,7 +762,7 @@ export default function AdvocatesPage() {
                       {viewingAdvocate.dues?.map((d: any) => (
                         <tr key={d.id}>
                           <td className="py-2 px-3 font-semibold">{d.period_name || d.due_year}</td>
-                          <td className="py-2 px-3 capitalize">{d.due_type.replace(/_/g, " ")}</td>
+                          <td className="py-2 px-3 capitalize">{d.due_type ? String(d.due_type).replace(/_/g, " ") : "Annual Dues"}</td>
                           <td className="py-2 px-3">{d.due_month ? `Month ${d.due_month} / ${d.due_year}` : `Year ${d.due_year}`}</td>
                           <td className="py-2 px-3 font-semibold">{formatCurrency(d.amount)}</td>
                           <td className="py-2 px-3 text-emerald-600">{formatCurrency(d.paid_amount)}</td>

@@ -291,7 +291,7 @@ export default function CasesPage() {
                     </td>
                     <td className="py-3 px-4 capitalize">
                       <Badge variant="neutral" size="sm">
-                        {c.category.replace(/_/g, " ")}
+                        {c.category ? String(c.category).replace(/_/g, " ") : "Civil"}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
