@@ -162,6 +162,13 @@ export default function AdvocatesPage() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const cleanPhone = formData.phone.replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+      notify.error("Phone / Mobile Number must be exactly 10 digits");
+      return;
+    }
+
     setFormSubmitting(true);
 
     try {
@@ -530,9 +537,20 @@ export default function AdvocatesPage() {
             <Input
               label="Phone / Mobile Number"
               required
-              placeholder="e.g. +91 9811122334"
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="e.g. 9876543210 (10 digits)"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) => {
+                const numericOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
+                setFormData({ ...formData, phone: numericOnly });
+              }}
+              helperText={
+                formData.phone.length > 0 && formData.phone.length < 10
+                  ? `${formData.phone.length}/10 digits entered (10 required)`
+                  : undefined
+              }
             />
 
             <Input

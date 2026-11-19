@@ -165,6 +165,16 @@ export async function PUT(
       photo_url,
     } = body;
 
+    if (phone) {
+      const cleanPhone = String(phone).replace(/\D/g, "");
+      if (cleanPhone.length !== 10) {
+        return NextResponse.json(
+          { success: false, error: "Phone / Mobile Number must be exactly 10 digits" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Duplicate check excluding self
     const [existing] = await query<any[]>(
       `SELECT id, bar_council_reg_no, association_membership_no FROM advocates

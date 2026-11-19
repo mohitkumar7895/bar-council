@@ -308,9 +308,12 @@ export default function UsersPage() {
 
           <Input
             label="Phone Number"
-            placeholder="e.g. +91 9811122334"
+            type="tel"
+            inputMode="numeric"
+            maxLength={10}
+            placeholder="e.g. 9876543210 (10 digits)"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
           />
 
           <div className="space-y-1.5">

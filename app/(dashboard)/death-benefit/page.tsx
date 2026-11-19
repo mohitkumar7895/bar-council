@@ -108,6 +108,13 @@ export default function DeathBenefitPage() {
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+      notify.error("Nominee Phone Number must be exactly 10 digits");
+      return;
+    }
+
     setSubmittingRegister(true);
 
     try {
@@ -522,11 +529,14 @@ export default function DeathBenefitPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Nominee Phone Number *"
+              label="Nominee Phone Number"
               required
-              placeholder="e.g. +91 9811122334"
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="e.g. 9876543210 (10 digits)"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
             />
             <Input
               label="Nominee Email"
